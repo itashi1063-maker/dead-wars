@@ -1,70 +1,159 @@
-/* CSS: التنسيق والمظهر */
+/* تنسيق الصفحة العام */
 body {
-    margin: 0; background: #0a0a0a;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    height: 100vh; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent;
+    margin: 0; 
+    background: #0a0a0a; /* خلفية سوداء داكنة */
+    display: flex; 
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center;
+    height: 100vh; 
+    color: white; 
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden; /* منع التمرير */
+    user-select: none; /* منع تحديد النصوص أثناء اللعب */
+    -webkit-tap-highlight-color: transparent; /* إزالة الوميض عند اللمس في الهواتف */
 }
 
+/* حاوية اللعبة */
 #game-wrapper {
-    position: relative; border: 6px solid #333;
-    background: #000; width: 1000px; max-width: 95vw;
+    position: relative; 
+    border: 6px solid #333;
+    background: #000; 
+    width: 1000px; 
+    max-width: 95vw;
     box-shadow: 0 0 40px rgba(0,0,0,0.8);
 }
 
-canvas { width: 100%; display: block; background: linear-gradient(to bottom, #111, #1a1a1a); }
+/* منطقة الرسم (Canvas) */
+canvas { 
+    width: 100%; 
+    display: block; 
+    background: linear-gradient(to bottom, #111, #1a1a1a); /* تدرج لوني للخلفية */
+}
 
+/* واجهة المستخدم (HP والكومبو) */
 #ui {
-    position: absolute; width: 100%; display: flex;
-    justify-content: space-between; padding: 20px;
-    box-sizing: border-box; pointer-events: none; z-index: 10;
+    position: absolute; 
+    width: 100%; 
+    display: flex;
+    justify-content: space-between; 
+    padding: 20px;
+    box-sizing: border-box; 
+    pointer-events: none; /* لكي لا تعيق اللمس */
+    z-index: 10;
 }
 
+/* شريط الصحة */
 .health-bar {
-    width: 250px; height: 25px; background: #333;
-    border: 2px solid #fff; border-radius: 5px; overflow: hidden;
+    width: 250px; 
+    height: 25px; 
+    background: #333;
+    border: 2px solid #fff; 
+    border-radius: 5px; 
+    overflow: hidden;
 }
 
-.health-fill { height: 100%; width: 100%; transition: 0.3s ease-out; }
-#p1-fill { background: #008cff; box-shadow: 0 0 10px #008cff; }
-#p2-fill { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+.health-fill { 
+    height: 100%; 
+    width: 100%; 
+    transition: 0.3s ease-out; 
+}
 
-#combo-txt { color: #ffd700; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+#p1-fill { background: #008cff; box-shadow: 0 0 10px #008cff; } /* أزرق للاعب */
+#p2-fill { background: #ff0000; box-shadow: 0 0 10px #ff0000; } /* أحمر للبوت */
 
+#combo-txt { 
+    color: #ffd700; 
+    font-size: 32px; 
+    font-weight: bold; 
+    text-shadow: 2px 2px 4px #000; 
+}
+
+/* منطقة التحكم (الأزرار) */
 #controls {
-    position: fixed; bottom: 30px; width: 100%;
-    display: flex; justify-content: space-between;
-    padding: 0 50px; box-sizing: border-box; pointer-events: none;
+    position: fixed; 
+    bottom: 30px; 
+    width: 100%;
+    display: flex; 
+    justify-content: space-between;
+    padding: 0 50px; 
+    box-sizing: border-box; 
+    pointer-events: none;
 }
 
-.btn-group { display: flex; gap: 20px; pointer-events: auto; }
+.btn-group { 
+    display: flex; 
+    gap: 20px; 
+    pointer-events: auto; 
+}
 
+/* تصميم الأزرار الدائرية */
 .btn {
-    width: 95px; height: 95px; background: rgba(255,255,255,0.1);
-    border: 4px solid rgba(255,255,255,0.4); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: bold; font-size: 22px; touch-action: none;
+    width: 95px; 
+    height: 95px; 
+    background: rgba(255,255,255,0.1);
+    border: 4px solid rgba(255,255,255,0.4); 
+    border-radius: 50%;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-weight: bold; 
+    font-size: 22px; 
+    touch-action: none;
     transition: 0.1s;
 }
 
-.btn:active { background: rgba(255,255,255,0.5); transform: scale(0.85); }
-.btn-atk { background: rgba(255,0,0,0.25); border-color: #ff4444; color: #fff; }
+.btn:active { 
+    background: rgba(255,255,255,0.5); 
+    transform: scale(0.85); 
+}
 
-/* تأثير الـ Cooldown: إخفاء الزر تماماً لمدة 2 ثانية */
-.cooldown { visibility: hidden; pointer-events: none; }
+.btn-atk { 
+    background: rgba(255,0,0,0.25); 
+    border-color: #ff4444; 
+    color: #fff; 
+}
 
+/* إخفاء زر الهجوم أثناء الـ Cooldown */
+.cooldown { 
+    visibility: hidden; 
+    pointer-events: none; 
+}
+
+/* شاشة نهاية اللعبة */
 #msg-overlay {
-    display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.9); flex-direction: column;
-    align-items: center; justify-content: center; z-index: 100;
+    display: none; 
+    position: absolute; 
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9); 
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center; 
+    z-index: 100;
 }
 
-#msg-overlay h1 { font-size: 60px; color: gold; margin-bottom: 30px; text-shadow: 0 0 20px gold; }
+#msg-overlay h1 { 
+    font-size: 60px; 
+    color: gold; 
+    margin-bottom: 30px; 
+    text-shadow: 0 0 20px gold; 
+}
 
+/* زر إعادة اللعب */
 #reset-btn {
-    padding: 15px 50px; font-size: 26px; font-weight: bold;
-    background: #ffd700; color: #000; border: none; border-radius: 50px;
-    cursor: pointer; pointer-events: auto; transition: 0.3s;
+    padding: 15px 50px; 
+    font-size: 26px; 
+    font-weight: bold;
+    background: #ffd700; 
+    color: #000; 
+    border: none; 
+    border-radius: 50px;
+    cursor: pointer; 
+    pointer-events: auto; 
+    transition: 0.3s;
 }
-#reset-btn:hover { transform: scale(1.1); background: #fff; }
+
+#reset-btn:hover { 
+    transform: scale(1.1); 
+    background: #fff; 
+}

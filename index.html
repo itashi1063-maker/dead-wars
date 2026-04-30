@@ -4,7 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ستورم قتال - النسخة الاحترافية النهائية</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* CSS: التنسيق والمظهر */
+        body {
+            margin: 0; background: #0a0a0a;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        #game-wrapper {
+            position: relative; border: 6px solid #333;
+            background: #000; width: 1000px; max-width: 95vw;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        canvas { width: 100%; display: block; background: linear-gradient(to bottom, #111, #1a1a1a); }
+
+        #ui {
+            position: absolute; width: 100%; display: flex;
+            justify-content: space-between; padding: 20px;
+            box-sizing: border-box; pointer-events: none; z-index: 10;
+        }
+
+        .health-bar {
+            width: 250px; height: 25px; background: #333;
+            border: 2px solid #fff; border-radius: 5px; overflow: hidden;
+        }
+
+        .health-fill { height: 100%; width: 100%; transition: 0.3s ease-out; }
+        #p1-fill { background: #008cff; box-shadow: 0 0 10px #008cff; }
+        #p2-fill { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+
+        #combo-txt { color: #ffd700; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+
+        #controls {
+            position: fixed; bottom: 30px; width: 100%;
+            display: flex; justify-content: space-between;
+            padding: 0 50px; box-sizing: border-box; pointer-events: none;
+        }
+
+        .btn-group { display: flex; gap: 20px; pointer-events: auto; }
+
+        .btn {
+            width: 95px; height: 95px; background: rgba(255,255,255,0.1);
+            border: 4px solid rgba(255,255,255,0.4); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 22px; touch-action: none;
+            transition: 0.1s;
+        }
+
+        .btn:active { background: rgba(255,255,255,0.5); transform: scale(0.85); }
+        .btn-atk { background: rgba(255,0,0,0.25); border-color: #ff4444; color: #fff; }
+        
+        /* تأثير الـ Cooldown: إخفاء الزر تماماً لمدة 2 ثانية */
+        .cooldown { visibility: hidden; pointer-events: none; }
+
+        #msg-overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100;
+        }
+
+        #msg-overlay h1 { font-size: 60px; color: gold; margin-bottom: 30px; text-shadow: 0 0 20px gold; }
+
+        #reset-btn {
+            padding: 15px 50px; font-size: 26px; font-weight: bold;
+            background: #ffd700; color: #000; border: none; border-radius: 50px;
+            cursor: pointer; pointer-events: auto; transition: 0.3s;
+        }
+        #reset-btn:hover { transform: scale(1.1); background: #fff; }
+    </style>
 </head>
 <body>
 
@@ -34,6 +105,177 @@
     </div>
 </div>
 
-<script src="script.js"></script>
+<script>
+    /* JS: برمجة اللعبة */
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1000; canvas.height = 450;
+
+    const images = {
+        idle: new Image(), atk1: new Image(), atk2: new Image(), combo: new Image()
+    };
+    // الصور الخاصة بك
+    images.idle.src = 'https://i.postimg.cc/Sxc2K2Qv/Gemini-Generated-Image-nsp4aansp4aansp4-removebg-preview.png';
+    images.atk1.src = 'https://i.postimg.cc/hPTTX324/Gemini-Generated-Image-r7zbknr7zbknr7zb-removebg-preview.png';
+    images.atk2.src = 'https://i.postimg.cc/3x9ypMpC/Gemini-Generated-Image-p33pc6p33pc6p33p-removebg-preview.png';
+    images.combo.src = 'https://i.postimg.cc/TPLRPBcY/Gemini-Generated-Image-d9ok8gd9ok8gd9ok-removebg-preview.png';
+
+    let damageTexts = [];
+    let isGameOver = false;
+
+    class Character {
+        constructor(x, isPlayer) {
+            this.startX = x;
+            this.isPlayer = isPlayer;
+            this.reset();
+        }
+
+        reset() {
+            this.x = this.startX; this.y = 100;
+            this.w = 180; this.h = 230; // حجم الصور كبير وواضح
+            this.vx = 0; this.vy = 0; this.hp = 100;
+            this.facing = this.isPlayer ? 1 : -1;
+            this.img = images.idle; this.canAtk = true; this.combo = 0;
+            this.isAtkActive = false;
+        }
+
+        draw() {
+            ctx.save();
+            // البوت لونه محمر دائماً
+            if (!this.isPlayer) {
+                ctx.filter = "sepia(1) saturate(4) hue-rotate(-50deg)";
+            }
+
+            let dw = this.w, dh = this.h, dy = this.y;
+            // تكبير الكومبو بشكل عملاق
+            if (this.img === images.combo) {
+                dw *= 1.8; dh *= 1.8; dy -= 100;
+            }
+
+            if (this.facing === -1) {
+                ctx.translate(this.x + dw, dy); ctx.scale(-1, 1);
+                ctx.drawImage(this.img, 0, 0, dw, dh);
+            } else {
+                ctx.drawImage(this.img, this.x, dy, dw, dh);
+            }
+            ctx.restore();
+        }
+
+        update() {
+            this.x += this.vx; this.y += this.vy;
+            if (this.y + this.h < canvas.height) this.vy += 0.9;
+            else { this.vy = 0; this.y = canvas.height - this.h; }
+            this.draw();
+        }
+
+        attack() {
+            if (!this.canAtk || isGameOver) return;
+            this.canAtk = false;
+            this.isAtkActive = true;
+            this.combo++;
+            
+            const btn = document.getElementById('attack');
+            if(this.isPlayer) btn.classList.add('cooldown');
+
+            if (this.combo >= 3) {
+                this.img = images.combo;
+                setTimeout(() => { 
+                    this.img = images.idle; this.combo = 0; 
+                    document.getElementById('combo-txt').innerText = "COMBO: 0";
+                }, 850);
+            } else {
+                // إظهار الصورة الأولى ثم الثانية بوضوح
+                this.img = images.atk1;
+                setTimeout(() => { if(!isGameOver) this.img = images.atk2; }, 250); 
+                setTimeout(() => { if(!isGameOver) this.img = images.idle; }, 600);
+            }
+
+            document.getElementById('combo-txt').innerText = "COMBO: " + this.combo;
+
+            // وقت الانتظار 2 ثانية
+            setTimeout(() => {
+                this.canAtk = true;
+                if(this.isPlayer) btn.classList.remove('cooldown');
+            }, 2000);
+        }
+    }
+
+    const p = new Character(100, true);
+    const b = new Character(750, false);
+
+    function showDmg(x, y, txt, col) {
+        damageTexts.push({ x, y, txt, col, life: 45 });
+    }
+
+    function resetGame() {
+        p.reset(); b.reset();
+        damageTexts = []; isGameOver = false;
+        document.getElementById('msg-overlay').style.display = 'none';
+        document.getElementById('p1-fill').style.width = "100%";
+        document.getElementById('p2-fill').style.width = "100%";
+        document.getElementById('combo-txt').innerText = "COMBO: 0";
+        document.getElementById('attack').classList.remove('cooldown');
+        requestAnimationFrame(loop);
+    }
+
+    document.getElementById('reset-btn').addEventListener('click', resetGame);
+
+    function loop() {
+        if (isGameOver) return;
+        ctx.clearRect(0, 0, 1000, 450);
+        
+        p.update(); b.update();
+
+        // ذكاء البوت
+        if(b.x > p.x + 150) b.vx = -3;
+        else if(b.x < p.x - 150) b.vx = 3;
+        else { b.vx = 0; if(Math.random() < 0.02) b.attack(); }
+
+        // التحقق من الضربات
+        if (p.img !== images.idle && p.isAtkActive && Math.abs(p.x - b.x) < 200) {
+            let d = p.combo >= 3 ? 25 : 10;
+            b.hp -= d; p.isAtkActive = false;
+            showDmg(b.x + 50, b.y, `-${d}`, "#00ffff"); // أزرق للدمج الملحق
+            document.getElementById('p2-fill').style.width = Math.max(0, b.hp) + "%";
+        }
+        if (b.img !== images.idle && b.isAtkActive && Math.abs(b.x - p.x) < 200) {
+            p.hp -= 5; b.isAtkActive = false;
+            showDmg(p.x + 50, p.y, "-5", "#ff3333"); // أحمر للدمج المتلقى
+            document.getElementById('p1-fill').style.width = Math.max(0, p.hp) + "%";
+        }
+
+        // رسم أرقام الضرر
+        damageTexts.forEach((t, i) => {
+            ctx.fillStyle = t.col; ctx.font = "bold 45px Arial";
+            ctx.fillText(t.txt, t.x, t.y); t.y -= 2; t.life--;
+            if(t.life <= 0) damageTexts.splice(i, 1);
+        });
+
+        if (p.hp <= 0 || b.hp <= 0) {
+            isGameOver = true;
+            document.getElementById('msg-overlay').style.display = 'flex';
+            document.getElementById('win-txt').innerText = p.hp <= 0 ? "GAME OVER" : "VICTORY!";
+        } else {
+            requestAnimationFrame(loop);
+        }
+    }
+
+    const setupControl = (id, start, end) => {
+        const el = document.getElementById(id);
+        const handleStart = (e) => { e.preventDefault(); start(); };
+        const handleEnd = (e) => { e.preventDefault(); if(end) end(); };
+        el.addEventListener('touchstart', handleStart);
+        el.addEventListener('touchend', handleEnd);
+        el.addEventListener('mousedown', handleStart);
+        el.addEventListener('mouseup', handleEnd);
+    };
+
+    setupControl('left', () => { p.vx = -7; p.facing = -1; }, () => p.vx = 0);
+    setupControl('right', () => { p.vx = 7; p.facing = 1; }, () => p.vx = 0);
+    setupControl('up', () => { if(p.vy === 0) p.vy = -20; });
+    setupControl('attack', () => p.attack());
+
+    loop();
+</script>
 </body>
 </html>
